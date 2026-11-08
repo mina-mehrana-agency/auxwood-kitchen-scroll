@@ -60,7 +60,7 @@ def webp(src, vf, out, quality):
 def main():
     os.makedirs('img', exist_ok=True)
 
-    # The island keeps the true pixels of the real photo, with a soft alpha from its outline.
+    # The island comes from the AI-sharpened copy of the real photo, with a soft alpha from its outline.
     e = read_rgb('source/e16.png')
     x0, y0 = min(p[0] for p in ISLAND) - 4, min(p[1] for p in ISLAND) - 4
     x1, y1 = max(p[0] for p in ISLAND) + 4, max(p[1] for p in ISLAND) + 4
@@ -72,7 +72,7 @@ def main():
                     '-frames:v', '1', '-update', '1', master], input=rgba.tobytes(), check=True)
     print('island box', x0, y0, cw, ch)
 
-    # Floor shadow: how much darker the real photo is than the no-island image, outside the island.
+    # Floor shadow: how much darker the sharpened photo is than the no-island image, outside the island.
     n = read_rgb('source/finished16.png')
     ratio = blur(e.mean(axis=2), 14) / np.maximum(blur(n.mean(axis=2), 14), 1)
     dark = np.clip(1 - ratio - 0.03, 0, 1)

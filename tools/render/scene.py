@@ -917,6 +917,7 @@ def reset():
         o.hide_render = False
         o.visible_camera = True
         o.is_shadow_catcher = False
+        o.is_holdout = False
 
 
 def render_to(name):
@@ -943,6 +944,7 @@ def crop_of(objs):
 
 
 modes = ARGS.mode.split(',')
+HOLDOUT = {'islandtop': ['island']}
 meta = {}
 
 if 'beauty' in modes:
@@ -980,6 +982,11 @@ if 'pieces' in modes or any(m.startswith('only:') for m in modes):
             o.visible_camera = False
         for o in PIECES[pid]:
             o.visible_camera = True
+        # What sits in front of this piece and has already landed cuts it, so its hidden parts never show.
+        for other in HOLDOUT.get(pid, []):
+            for o in PIECES[other]:
+                o.visible_camera = True
+                o.is_holdout = True
         x0, y0, x1, y1 = crop_of(PIECES[pid])
         r.film_transparent = True
         r.use_border, r.use_crop_to_border = True, True
@@ -992,8 +999,8 @@ if 'pieces' in modes or any(m.startswith('only:') for m in modes):
 if 'shadows' in modes:
     GROUPS = {
         'left': ['tall1', 'tall2', 'oven'], 'base': ['base1', 'base2', 'base3', 'base4', 'base5', 'worktop'],
-        'upper': ['up1', 'up2', 'hood', 'topl', 'topu1', 'topu2', 'topf', 'topc'], 'fridge': ['fridge'],
-        'coffee': ['cpanel', 'cbase1', 'cbase2', 'cbase3', 'cbase4', 'cworktop', 'espresso', 'shelf1', 'shelf2', 'shelf3'],
+        'upper': ['up1', 'up2', 'hood', 'topl', 'topu1', 'topu2', 'topf'], 'fridge': ['fridge'],
+        'coffee': ['topc', 'cpanel', 'cbase1', 'cbase2', 'cbase3', 'cbase4', 'cworktop', 'espresso', 'shelf1', 'shelf2', 'shelf3'],
         'island': ['island', 'islandtop', 'stool1', 'stool2', 'stool3'],
     }
     for g, ids in GROUPS.items():

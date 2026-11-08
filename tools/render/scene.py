@@ -754,7 +754,7 @@ def stadium(r, n=22):
 
 with piece('island'):
     B().prism(stadium(IR - 0.045), 0, 0.08).done('iplinth', 'carcass')
-    B().prism(stadium(IR - 0.01), 0.08, I_TOP).done('icore', 'carcass')
+    icore = B().prism(stadium(IR - 0.01), 0.08, I_TOP).done('icore', 'carcass')
     fl = B()
     run = stadium(IR)
     run.append(run[0])
@@ -775,11 +775,15 @@ with piece('island'):
 with piece('islandtop'):
     top = B().prism(stadium(IR + 0.05), I_TOP, I_TOP + 0.05).done('itop', 'stone')
     with env(HELPERS):
-        cut = B().box(0.03, 0.73, IC_Y - 0.22, IC_Y + 0.22, I_TOP - 0.05, I_TOP + 0.1).done('sinkcut', 'black')
+        cut = B().box(0.03, 0.73, IC_Y - 0.22, IC_Y + 0.22, I_TOP - 0.3, I_TOP + 0.1).done('sinkcut', 'black')
     mod = top.modifiers.new('sink', 'BOOLEAN')
     mod.operation = 'DIFFERENCE'
     mod.solver = 'EXACT'
     mod.object = cut
+    mod2 = icore.modifiers.new('sink', 'BOOLEAN')
+    mod2.operation = 'DIFFERENCE'
+    mod2.solver = 'EXACT'
+    mod2.object = cut
     s = B()
     z0 = I_TOP - 0.18
     s.box(0.02, 0.74, IC_Y - 0.23, IC_Y + 0.23, z0 - 0.01, z0)

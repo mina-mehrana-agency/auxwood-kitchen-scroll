@@ -136,18 +136,18 @@ def wood(name, axis='z', dark='#3c2415', mid='#6b4427', light='#94673f', rough=0
     return m
 
 
-def marble(name, base='#f1eee8', vein='#8f8a82', scale=2.2, rough=0.16):
+def marble(name, base='#f3f0ea', vein='#b3aea5', scale=1.6, rough=0.16):
     m, nt, p, normal = base_mat(name, base, rough, bevel=0.0015)
     w = nt.nodes.new('ShaderNodeTexWave')
     w.wave_type = 'BANDS'
     w.bands_direction = 'DIAGONAL'
     w.inputs['Scale'].default_value = scale
-    w.inputs['Distortion'].default_value = 11
+    w.inputs['Distortion'].default_value = 8
     w.inputs['Detail'].default_value = 7
     w.inputs['Detail Scale'].default_value = 1.3
     w.inputs['Detail Roughness'].default_value = 0.6
     nt.links.new(coords(nt), w.inputs['Vector'])
-    col = ramp(nt, w.outputs[1], [(0.0, vein), (0.05, base), (1.0, base)])
+    col = ramp(nt, w.outputs[1], [(0.0, vein), (0.035, base), (1.0, base)])
     nt.links.new(col, p.inputs['Base Color'])
     return m
 
@@ -160,7 +160,7 @@ def concrete(name, a='#8d8a84', b='#a7a39c', c='#6f6c67', big=1.1, rough=0.86, b
     n2 = noise(nt, v, big * 26, 6, 0.65)
     mix = nt.nodes.new('ShaderNodeMixRGB')
     mix.blend_type = 'MULTIPLY'
-    mix.inputs['Fac'].default_value = 0.35
+    mix.inputs['Fac'].default_value = 0.2
     nt.links.new(col, mix.inputs['Color1'])
     nt.links.new(ramp(nt, n2, [(0.35, '#b5b5b5'), (0.65, '#ffffff')]), mix.inputs['Color2'])
     nt.links.new(mix.outputs[0], p.inputs['Base Color'])
@@ -195,11 +195,11 @@ MAT = {
     'walnut': wood('walnut'),
     'walnutx': wood('walnutx', 'x'),
     'slat': wood('slat', 'z', '#4a2d1a', '#7a5130', '#a2754a', 0.5),
-    'oakx': wood('oakx', 'x', '#a07a4f', '#bd9769', '#d4b288', 0.45),
+    'oakx': wood('oakx', 'x', '#b08c62', '#c9a67c', '#dcbf9b', 0.45),
     'stone': marble('stone'),
     'stonedark': marble('stonedark', '#262729', '#cfc7b6', 1.8, 0.14),
     'brass': plain('brass', '#c79a57', 0.26, 1, 0.001),
-    'steel': plain('steel', '#c9cbcc', 0.24, 1, 0.0015),
+    'steel': plain('steel', '#d2d4d5', 0.3, 1, 0.0015),
     'black': plain('black', '#17181a', 0.42, 0, 0.0015),
     'glassblack': plain('glassblack', '#08090a', 0.06, 0, 0.001),
     'ceramic': plain('ceramic', '#efece6', 0.18, 0, 0.001),
@@ -213,14 +213,14 @@ MAT = {
     'led': emit('led', '#ffd9a6', 7),
     'bulb': emit('bulb', '#ffe2b5', 22),
     'spot': emit('spot', '#fff0d8', 18),
-    'wall': plain('wall', '#e6e0d5', 0.75, 0, 0),
-    'ceiling': plain('ceiling', '#f1eee8', 0.8, 0, 0),
+    'wall': plain('wall', '#efeae1', 0.75, 0, 0),
+    'ceiling': plain('ceiling', '#f6f3ee', 0.8, 0, 0),
     'trim': plain('trim', '#ded8cc', 0.6),
     'floor': tile_floor('floor'),
     'frame': plain('frame', '#1c1d1f', 0.4),
-    'rawwall': concrete('rawwall', '#918e87', '#aaa69f', '#74716b', 1.3),
-    'rawfloor': concrete('rawfloor', '#8c8983', '#a5a29b', '#6e6b66', 0.9, 0.9, 0.7),
-    'rawceil': concrete('rawceil', '#86837d', '#9c9992', '#6a6762', 1.6),
+    'rawwall': concrete('rawwall', '#b8b4ac', '#c6c2ba', '#a6a29a', 0.9, 0.86, 0.35),
+    'rawfloor': concrete('rawfloor', '#a9a69f', '#b8b5ad', '#97948d', 0.7, 0.9, 0.6),
+    'rawceil': concrete('rawceil', '#b0aca5', '#bdb9b2', '#9f9b94', 1.3),
     'pvc': plain('pvc', '#3f4144', 0.55, 0, 0.001),
     'copper': plain('copper', '#b4744a', 0.3, 1, 0.001),
     'wire': plain('wire', '#a8352a', 0.5, 0, 0),
@@ -482,7 +482,7 @@ def potted(pid_mat, cx, cy, z, r, h, mat='ceramic'):
 
 
 def walls(mat_wall, b_ceiling_mat, floor_mat, raw=False):
-    win0, win1, wz0, wz1 = 0.9, 4.6, 0.85, 2.62
+    win0, win1, wz0, wz1 = 3.2, 5.2, 0.8, 2.62
     t = 0.25
     box('floor', XL - 1, XR + 1, YF - 1, YB + 1, -0.2, 0, floor_mat)
     box('ceil', XL - 1, XR + 1, YF - 1, YB + 1, H, H + 0.2, b_ceiling_mat)
@@ -508,9 +508,9 @@ with env(ENV_DONE):
     box('skirtL', XL, XL + 0.012, YF, FRONT, 0, 0.09, 'trim')
     # Slatted oak ceiling feature above the island, recessed spots elsewhere.
     sl = B()
-    x = -2.3
-    while x < 2.3:
-        sl.box(x, x + 0.05, 2.95, 4.75, H - 0.05, H)
+    x = -1.9
+    while x < 1.9:
+        sl.box(x, x + 0.05, 3.2, 4.55, H - 0.05, H)
         x += 0.085
     sl.done('slats', 'oakx')
     sp = B()
@@ -526,10 +526,9 @@ with env(ENV_RAW):
         pv.box(x - 0.055, x + 0.055, YB - 0.012, YB, z - 0.075, z + 0.075)
     pv.done('boxes', 'pvc')
     for i, (x, z) in enumerate([(-2.9, 1.1), (-1.8, 1.14), (-0.7, 1.14), (0.45, 1.14), (2.6, 1.14), (3.4, 1.14), (-0.7, 2.1)]):
-        tube(f'wire{i}', [(x, YB - 0.012, z - 0.03), (x + 0.02, YB - 0.03, z - 0.09), (x - 0.01, YB - 0.05, z - 0.15), (x + 0.03, YB - 0.04, z - 0.21)], 0.0028, 'wire', 2)
+        tube(f'wire{i}', [(x, YB - 0.012, z - 0.03), (x + 0.02, YB - 0.03, z - 0.09), (x - 0.01, YB - 0.05, z - 0.15), (x + 0.03, YB - 0.04, z - 0.21)], 0.004, 'wire', 2)
     for i, (x, z) in enumerate([(-0.15, 0.5), (0.0, 0.5), (0.18, 0.56), (2.95, 0.52), (3.1, 0.52)]):
-        tube(f'stub{i}', [(x, YB, z), (x, YB - 0.04, z), (x, YB - 0.08, z)], 0.011, 'copper', 2)
-        B().cyl(x, 0, 0.001, 0, 0.001, 4)  # placeholder keeps numbering simple
+        tube(f'stub{i}', [(x, YB, z), (x, YB - 0.05, z), (x, YB - 0.11, z)], 0.016, 'copper', 2)
     for i, (x, y) in enumerate([(0.32, 3.86), (0.42, 3.86)]):
         tube(f'floorstub{i}', [(x, y, 0), (x, y, 0.08), (x, y, 0.16)], 0.014, 'copper', 2)
     for i, x in enumerate((-0.7, -0.64)):
@@ -586,9 +585,32 @@ with piece('hood'):
         t_ = math.pi + math.pi * i / n
         ch.cyl(-0.7 + math.cos(t_) * r, YB + math.sin(t_) * r * 0.75, 0.0165, 1.7, H, 10)
     ch.done('flutes', 'blue2', True)
-    box('chcore', -0.7 - r + 0.012, -0.7 + r - 0.012, YB - r * 0.7, YB, 1.7, H, 'carcass')
+    B().prism([(-0.7 + math.cos(math.pi + math.pi * i / 24) * (r - 0.006), YB + math.sin(math.pi + math.pi * i / 24) * (r - 0.006) * 0.75) for i in range(25)], 1.7, H).done('chcore', 'carcass')
 
 tall_unit('fridge', 0.8, 1.7, 'fridge')
+
+
+
+def top_unit(pid, x0, x1, n, y=FRONT, mat='blue', slab=False):
+    with piece(pid):
+        box(pid + '_c', x0 + 0.002, x1 - 0.002, y + 0.02, YB, UP1, H - 0.004, 'carcass')
+        f, h = B(), B()
+        for i in range(n):
+            a, b_ = x0 + (x1 - x0) * i / n, x0 + (x1 - x0) * (i + 1) / n
+            if slab:
+                f.box(a + 0.0015, b_ - 0.0015, y, y + 0.02, UP1 + 0.0015, H - 0.006)
+            else:
+                shaker(f, a, b_, UP1, H - 0.004, y)
+            pull_h(h, a + (b_ - a) * 0.3, b_ - (b_ - a) * 0.3, UP1 + 0.06, y)
+        f.done(pid + '_f', mat)
+        h.done(pid + '_h', 'brass')
+
+
+top_unit('topl', -4.0, -2.2, 3)
+top_unit('topu1', -2.2, -1.2, 2, YB - 0.35)
+top_unit('topu2', -0.2, 0.8, 2, YB - 0.35)
+top_unit('topf', 0.8, 1.7, 2)
+top_unit('topc', 1.7, 4.0, 4, YB - 0.3, 'walnut', True)
 
 # ------------------------------------------------------------------ coffee bar
 with piece('cpanel'):
@@ -599,7 +621,6 @@ with piece('cpanel'):
         x += 0.034
     sl.done('cslats', 'slat')
     box('cback', 1.7, 4.0, YB - 0.008, YB, BASE_TOP + TOP_T, TALL, 'carcass')
-    box('ctop', 1.7, 4.0, YB - 0.3, YB, TALL, TALL + 0.05, 'walnutx')
     box('cled', 1.74, 3.96, YB - 0.2, YB - 0.18, TALL - 0.006, TALL, 'led')
 
 
@@ -770,7 +791,7 @@ with piece('islandtop'):
     # Tall brass tap.
     ZT = I_TOP + 0.05
     B().cyl(0.38, IC_Y + 0.31, 0.024, ZT, ZT + 0.07, 18).done('tapbase', 'brass', True)
-    tube('tap', [(0.38, IC_Y + 0.31, ZT + 0.05), (0.38, IC_Y + 0.31, ZT + 0.24), (0.38, IC_Y + 0.25, ZT + 0.38), (0.38, IC_Y + 0.14, ZT + 0.4), (0.38, IC_Y + 0.05, ZT + 0.33), (0.38, IC_Y + 0.05, ZT + 0.27)], 0.012, 'brass', 3)
+    tube('tap', [(0.38, IC_Y + 0.31, ZT + 0.05), (0.38, IC_Y + 0.31, ZT + 0.3), (0.38, IC_Y + 0.24, ZT + 0.47), (0.38, IC_Y + 0.12, ZT + 0.5), (0.38, IC_Y + 0.03, ZT + 0.42), (0.38, IC_Y + 0.03, ZT + 0.34)], 0.014, 'brass', 3)
     tube('lever', [(0.38, IC_Y + 0.31, ZT + 0.06), (0.44, IC_Y + 0.31, ZT + 0.07), (0.49, IC_Y + 0.31, ZT + 0.085)], 0.005, 'brass', 2)
     # A few things on the top.
     B().lathe(-0.72, IC_Y - 0.05, [(0.0, ZT), (0.07, ZT), (0.15, ZT + 0.09), (0.145, ZT + 0.09), (0.065, ZT + 0.012), (0.0, ZT + 0.012)], 28).done('fruitbowl', 'ceramicdark', True)
@@ -796,9 +817,9 @@ stool('stool3', 0.92)
 
 with piece('pendants'):
     for i, x in enumerate((-0.92, 0.0, 0.92)):
-        z = 1.72
+        z = 1.84
         tube(f'cord{i}', [(x, IC_Y, H - 0.05), (x, IC_Y, z + 0.5), (x, IC_Y, z + 0.26)], 0.0035, 'black', 2)
-        B().lathe(x, IC_Y, [(0.015, z + 0.27), (0.03, z + 0.25), (0.09, z + 0.2), (0.135, z + 0.12), (0.16, z), (0.155, z), (0.125, z + 0.115), (0.08, z + 0.19)], 30).done(f'dome{i}', 'brass', True)
+        B().lathe(x, IC_Y, [(0.015, z + 0.24), (0.03, z + 0.22), (0.08, z + 0.18), (0.118, z + 0.1), (0.14, z), (0.135, z), (0.11, z + 0.095), (0.07, z + 0.17)], 30).done(f'dome{i}', 'brass', True)
         B().lathe(x, IC_Y, [(0.0, z + 0.03), (0.04, z + 0.06), (0.045, z + 0.1), (0.02, z + 0.14), (0.0, z + 0.15)], 16).done(f'bulb{i}', 'bulb', True)
 
 with piece('tree'):
@@ -832,7 +853,7 @@ coll.objects.link(sun)
 area = bpy.data.objects.new('area', bpy.data.lights.new('area', 'AREA'))
 area.data.shape = 'RECTANGLE'
 area.data.size, area.data.size_y = 6.5, 3.2
-area.data.energy = 130
+area.data.energy = 170
 area.data.color = (1.0, 0.95, 0.88)
 area.location = (0.2, 3.4, H - 0.02)
 coll.objects.link(area)
@@ -840,9 +861,10 @@ coll.objects.link(area)
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
 cam.data.lens = 27
 cam.data.sensor_width = 36
-cam.location = (0.0, -1.35, 1.5)
+cam.location = (0.0, -1.35, 1.7)
+cam.data.shift_y = -0.05
 cam.rotation_mode = 'QUATERNION'
-cam.rotation_quaternion = (Vector((0.0, 6.0, 1.28)) - cam.location).to_track_quat('-Z', 'Y')
+cam.rotation_quaternion = (Vector((0.0, 6.0, 1.7)) - cam.location).to_track_quat('-Z', 'Y')
 coll.objects.link(cam)
 scene.camera = cam
 
@@ -869,7 +891,7 @@ c.caustics_reflective = c.caustics_refractive = False
 c.sample_clamp_indirect = 6
 scene.view_settings.view_transform = 'AgX'
 scene.view_settings.look = 'AgX - Medium High Contrast'
-scene.view_settings.exposure = 0.25
+scene.view_settings.exposure = 0.42
 for h in HELPERS:
     h.hide_render = True
 
@@ -894,7 +916,6 @@ def render_to(name):
 
 def crop_of(objs):
     x0, y0, x1, y1 = 1.0, 1.0, 0.0, 0.0
-    dg = bpy.context.evaluated_depsgraph_get()
     for o in objs:
         for corner in o.bound_box:
             p = world_to_camera_view(scene, cam, o.matrix_world @ Vector(corner))
@@ -943,7 +964,7 @@ if 'pieces' in modes:
 if 'shadows' in modes:
     GROUPS = {
         'left': ['tall1', 'tall2', 'oven'], 'base': ['base1', 'base2', 'base3', 'base4', 'base5', 'worktop'],
-        'upper': ['up1', 'up2', 'hood'], 'fridge': ['fridge'],
+        'upper': ['up1', 'up2', 'hood', 'topl', 'topu1', 'topu2', 'topf', 'topc'], 'fridge': ['fridge'],
         'coffee': ['cpanel', 'cbase1', 'cbase2', 'cbase3', 'cbase4', 'cworktop', 'espresso', 'shelf1', 'shelf2', 'shelf3'],
         'island': ['island', 'islandtop', 'stool1', 'stool2', 'stool3'],
     }

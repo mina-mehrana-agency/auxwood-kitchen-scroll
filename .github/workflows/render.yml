@@ -1,0 +1,50 @@
+name: render
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: beauty, raw, pieces, shadows (comma separated)
+        default: beauty,raw
+      width:
+        default: '960'
+      spp:
+        default: '24'
+      chunks:
+        description: parallel jobs, as a JSON list of chunk numbers
+        default: '[0]'
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJSON(github.event.inputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: blender
+          key: blender-4.2.3
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        run: |
+          mkdir blender
+          curl -fsSL https://download.blender.org/release/Blender4.2/blender-4.2.3-linux-x64.tar.xz | tar -xJ -C blender --strip-components=1
+      - name: System libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxi6 libxkbcommon0 libxrender1 libgl1 libsm6 libxxf86vm1 libxfixes3
+      - name: Render
+        env:
+          CHUNKS: ${{ github.event.inputs.chunks }}
+        run: |
+          n=$(python3 -c "import json,os;print(len(json.loads(os.environ['CHUNKS'])))")
+          ./blender/blender -b -noaudio --python-exit-code 1 --python tools/render/scene.py -- \
+            --mode "${{ github.event.inputs.mode }}" --width "${{ github.event.inputs.width }}" --spp "${{ github.event.inputs.spp }}" \
+            --chunk "${{ matrix.chunk }}/$n" --out out 2>&1 | grep -vE "^(Fra:|Sample|\s*$)" | tail -60
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: render-${{ matrix.chunk }}
+          path: out
+          retention-days: 7

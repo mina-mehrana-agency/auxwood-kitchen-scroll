@@ -200,6 +200,7 @@ MAT = {
     'stonedark': marble('stonedark', '#262729', '#cfc7b6', 1.8, 0.14),
     'brass': plain('brass', '#c79a57', 0.26, 1, 0.001),
     'steel': plain('steel', '#d2d4d5', 0.3, 1, 0.0015),
+    'sinksteel': plain('sinksteel', '#d4d6d7', 0.55, 0.5, 0.001),
     'black': plain('black', '#17181a', 0.42, 0, 0.0015),
     'glassblack': plain('glassblack', '#08090a', 0.06, 0, 0.001),
     'ceramic': plain('ceramic', '#efece6', 0.18, 0, 0.001),
@@ -786,12 +787,18 @@ with piece('islandtop'):
     mod2.object = cut
     s = B()
     z0 = I_TOP - 0.18
-    s.box(0.02, 0.74, IC_Y - 0.23, IC_Y + 0.23, z0 - 0.01, z0)
-    s.box(0.02, 0.03, IC_Y - 0.23, IC_Y + 0.23, z0, I_TOP + 0.05)
-    s.box(0.73, 0.74, IC_Y - 0.23, IC_Y + 0.23, z0, I_TOP + 0.05)
-    s.box(0.03, 0.73, IC_Y - 0.23, IC_Y - 0.22, z0, I_TOP + 0.05)
-    s.box(0.03, 0.73, IC_Y + 0.22, IC_Y + 0.23, z0, I_TOP + 0.05)
-    s.done('basin', 'steel')
+    # Satin steel: a mirror finish in a deep basin bounces light until it runs out and renders black.
+    s.box(0.03, 0.73, IC_Y - 0.22, IC_Y + 0.22, z0 - 0.01, z0)
+    s.box(0.03, 0.034, IC_Y - 0.22, IC_Y + 0.22, z0, I_TOP + 0.05)
+    s.box(0.726, 0.73, IC_Y - 0.22, IC_Y + 0.22, z0, I_TOP + 0.05)
+    s.box(0.034, 0.726, IC_Y - 0.22, IC_Y - 0.216, z0, I_TOP + 0.05)
+    s.box(0.034, 0.726, IC_Y + 0.216, IC_Y + 0.22, z0, I_TOP + 0.05)
+    rim0, rim1 = I_TOP + 0.05, I_TOP + 0.054
+    s.box(0.015, 0.034, IC_Y - 0.235, IC_Y + 0.235, rim0, rim1)
+    s.box(0.726, 0.745, IC_Y - 0.235, IC_Y + 0.235, rim0, rim1)
+    s.box(0.034, 0.726, IC_Y - 0.235, IC_Y - 0.216, rim0, rim1)
+    s.box(0.034, 0.726, IC_Y + 0.216, IC_Y + 0.235, rim0, rim1)
+    s.done('basin', 'sinksteel')
     # Tall brass tap.
     ZT = I_TOP + 0.05
     B().cyl(0.38, IC_Y + 0.31, 0.024, ZT, ZT + 0.07, 18).done('tapbase', 'brass', True)
@@ -890,7 +897,7 @@ c.adaptive_threshold = 0.02
 c.use_denoising = True
 c.denoiser = 'OPENIMAGEDENOISE'
 c.denoising_input_passes = 'RGB_ALBEDO_NORMAL'
-c.max_bounces, c.diffuse_bounces, c.glossy_bounces, c.transmission_bounces = 8, 4, 4, 4
+c.max_bounces, c.diffuse_bounces, c.glossy_bounces, c.transmission_bounces = 10, 4, 7, 4
 c.caustics_reflective = c.caustics_refractive = False
 c.sample_clamp_indirect = 6
 scene.view_settings.view_transform = 'AgX'
@@ -938,16 +945,27 @@ if 'beauty' in modes:
         o.hide_render = True
     render_to('beauty')
 
+if 'sinkpatch' in modes:
+    # Only the area around the sink, to paste into the finished beauty render.
+    reset()
+    for o in ENV_RAW:
+        o.hide_render = True
+    r.use_border, r.use_crop_to_border = True, True
+    r.border_min_x, r.border_max_x = 930 / 1920, 1210 / 1920
+    r.border_min_y, r.border_max_y = (1072 - 700) / 1072, (1072 - 615) / 1072
+    render_to('beauty_sink')
+
 if 'raw' in modes:
     reset()
     for o in ENV_DONE + ALL_PIECE_OBJS:
         o.hide_render = True
     render_to('raw')
 
-if 'pieces' in modes:
+if 'pieces' in modes or any(m.startswith('only:') for m in modes):
     i_, n_ = map(int, ARGS.chunk.split('/'))
+    only = [m[5:] for m in modes if m.startswith('only:')]
     for k, pid in enumerate(ORDER):
-        if k % n_ != i_:
+        if (pid not in only) if only else (k % n_ != i_):
             continue
         reset()
         for o in ENV_RAW:

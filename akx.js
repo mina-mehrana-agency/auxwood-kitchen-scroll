@@ -86,7 +86,8 @@ function load(){fetchImg('raw',function(u){raw.style.backgroundImage=u;raw.style
   fetchImg('room',function(v){root.style.setProperty('--akx-room',v);room.style.backgroundImage=v;
     fetchImg('island',function(w){island.style.backgroundImage=w;build();ready=true;draw(cur);fetchImg('shadow',function(x){shadow.style.backgroundImage=x})},giveUp)},giveUp)},giveUp)}
 /* Reduced motion or data saver: only the finished kitchen, no scrolling effect. */
-if(root.getAttribute('data-static')==='1'){root.classList.add('is-static');
+var c=navigator.connection;
+if((window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||(c&&(c.saveData||/2g/.test(c.effectiveType||'')))){root.style.height='auto';root.style.aspectRatio='2752/1536';root.classList.add('is-static');
   fetchImg('room',function(v){room.style.backgroundImage=v;raw.style.display='none'},giveUp);
   fetchImg('island',function(w){island.style.backgroundImage=w});fetchImg('shadow',function(x){shadow.style.backgroundImage=x});
   return}

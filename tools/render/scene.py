@@ -926,10 +926,16 @@ def render_to(name):
 
 
 def crop_of(objs):
+    # Read the real coordinates: bound_box is still empty before the first render of a process.
     x0, y0, x1, y1 = 1.0, 1.0, 0.0, 0.0
+    bpy.context.view_layer.update()
     for o in objs:
-        for corner in o.bound_box:
-            p = world_to_camera_view(scene, cam, o.matrix_world @ Vector(corner))
+        if o.type == 'MESH':
+            pts = [v.co for v in o.data.vertices]
+        else:
+            pts = [bp.co for sp in o.data.splines for bp in sp.bezier_points]
+        for co in pts:
+            p = world_to_camera_view(scene, cam, o.matrix_world @ co)
             x0, x1 = min(x0, p.x), max(x1, p.x)
             y0, y1 = min(y0, p.y), max(y1, p.y)
     pad = 8 / W

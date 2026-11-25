@@ -31,6 +31,7 @@ ARGS = ap.parse_args(argv)
 os.makedirs(ARGS.out, exist_ok=True)
 
 INTRO, END, FPS = 48, 140, 24
+SHADOWS = list(range(INTRO + 1, INTRO + 40, 6))   # 49, 55, ... 85: floor shadow layers while it lifts off
 W, H, D = 0.60, 0.62, 0.32          # cabinet (m): an upper two-door unit
 T, DT, GAP, BACK = 0.018, 0.019, 0.003, 0.008
 DW = (W - GAP - 0.002) / 2          # door width
@@ -110,9 +111,9 @@ def mdf_lacquer(name, door=None):
     nt.links.new(half, mixf.inputs[2])
     ramp = nt.nodes.new('ShaderNodeValToRGB')
     ramp.color_ramp.elements[0].position = 0.38
-    ramp.color_ramp.elements[0].color = (0.44, 0.27, 0.12, 1)
+    ramp.color_ramp.elements[0].color = (0.42, 0.24, 0.10, 1)
     ramp.color_ramp.elements[1].position = 0.66
-    ramp.color_ramp.elements[1].color = (0.56, 0.36, 0.17, 1)
+    ramp.color_ramp.elements[1].color = (0.53, 0.32, 0.14, 1)
     nt.links.new(mixf.outputs[0], ramp.inputs['Fac'])
     bump = node(nt, 'ShaderNodeBump', Strength=0.08, Distance=0.0004)
     nt.links.new(speck.outputs['Fac'], bump.inputs['Height'])
@@ -367,16 +368,18 @@ for f in range(1, END + 1):
             o.rotation_euler = (rot.x, rot.y, rot.z + swing)
         o.keyframe_insert('location', frame=f)
         o.keyframe_insert('rotation_euler', frame=f)
-    for n, kind in ANIM_VALUES:
-        n.outputs[0].default_value = s[kind]
-        n.outputs[0].keyframe_insert('default_value', frame=f)
 
-for idb in list(bpy.data.objects) + list(bpy.data.materials):
-    ad = getattr(idb, 'animation_data', None) if isinstance(idb, bpy.types.Object) else (idb.node_tree.animation_data if idb.node_tree else None)
+for ob in bpy.data.objects:
+    ad = ob.animation_data
     if ad and ad.action:
         for fc in ad.action.fcurves:
             for kp in fc.keyframe_points:
-                kp.interpolation = 'CONSTANT' if isinstance(idb, bpy.types.Material) else 'LINEAR'
+                kp.interpolation = 'LINEAR'
+
+
+def set_values(s):
+    for n, kind in ANIM_VALUES:
+        n.outputs[0].default_value = s[kind]
 
 # ------------------------------------------------------------------ light and camera
 world = bpy.data.worlds.new('w')
@@ -385,15 +388,22 @@ scene.world = world
 bg = world.node_tree.nodes['Background']
 hdri = sorted(glob.glob(os.path.join(bpy.utils.system_resource('DATAFILES'), 'studiolights', 'world', '*.exr')))
 pick = [h for h in hdri if 'interior' in h] or hdri
+wn = world.node_tree
 if pick:
-    env = world.node_tree.nodes.new('ShaderNodeTexEnvironment')
+    env = wn.nodes.new('ShaderNodeTexEnvironment')
     env.image = bpy.data.images.load(pick[0])
-    world.node_tree.links.new(env.outputs['Color'], bg.inputs['Color'])
-    bg.inputs['Strength'].default_value = 0.35
+    wn.links.new(env.outputs['Color'], bg.inputs['Color'])
+    bg.inputs['Strength'].default_value = 0.6
     print('hdri', pick[0], flush=True)
-else:
-    bg.inputs['Color'].default_value = (0.6, 0.58, 0.55, 1)
-    bg.inputs['Strength'].default_value = 0.3
+dim = wn.nodes.new('ShaderNodeBackground')
+dim.inputs['Color'].default_value = (0.62, 0.6, 0.57, 1)
+dim.inputs['Strength'].default_value = 0.14
+lp = wn.nodes.new('ShaderNodeLightPath')
+mixw = wn.nodes.new('ShaderNodeMixShader')
+wn.links.new(lp.outputs['Is Glossy Ray'], mixw.inputs[0])
+wn.links.new(dim.outputs[0], mixw.inputs[1])
+wn.links.new(bg.outputs[0], mixw.inputs[2])
+wn.links.new(mixw.outputs[0], wn.nodes['World Output'].inputs['Surface'])
 
 
 def area(name, size, size_y, loc, energy, color, target=(0, 0, 0.33), shadow=True):
@@ -454,8 +464,8 @@ def frames_from(spec):
     out = []
     for part in spec.split(','):
         part = part.strip()
-        if part == 'shadow':
-            out.append('shadow')
+        if part == 'shadows':
+            out += ['s%d' % n for n in SHADOWS]
         elif '-' in part:
             a, b = part.split('-')
             step = 1
@@ -494,7 +504,7 @@ def meta_of(f):
 
 ci, cn = (int(x) for x in ARGS.chunk.split('/'))
 if ci == 0:
-    meta = {'intro': INTRO, 'end': END, 'fps': FPS, 'frames': {f: meta_of(f) for f in range(1, END + 1)}}
+    meta = {'intro': INTRO, 'end': END, 'fps': FPS, 'shadows': SHADOWS, 'frames': {f: meta_of(f) for f in range(1, END + 1)}}
     with open(os.path.join(ARGS.out, 'meta.json'), 'w') as fh:
         json.dump(meta, fh)
     print('meta written', flush=True)
@@ -502,22 +512,26 @@ if ci == 0:
 mine = frames_from(ARGS.frames)[ci::cn]
 CAB_MESHES = [o for o in bpy.data.objects if o.type == 'MESH' and o is not catcher]
 for f in mine:
-    if f == 'shadow':
-        # the floor shadow of the first scroll pose alone (the cabinet unseen but still casting it)
-        scene.frame_set(INTRO + 1)
+    if isinstance(f, str):
+        # the floor shadow of a scroll pose alone (the cabinet unseen but still casting it)
+        n = int(f[1:])
+        scene.frame_set(n)
+        set_values(state(n))
         for o in CAB_MESHES:
             o.visible_camera = False
         catcher.hide_render = False
         r.use_motion_blur = False
-        scene.view_settings.exposure = state(INTRO + 1)['exposure']
-        r.filepath = os.path.join(ARGS.out, 'shadow.png')
+        scene.view_settings.exposure = state(n)['exposure']
+        r.filepath = os.path.join(ARGS.out, 's%03d.png' % n)
         bpy.ops.render.render(write_still=True)
         for o in CAB_MESHES:
             o.visible_camera = True
-        print('rendered shadow', flush=True)
+        print('rendered shadow', n, flush=True)
         continue
     scene.frame_set(f)
     s = state(f)
+    set_values(s)
+    print('values', f, [round(n.outputs[0].default_value, 3) for n, _ in ANIM_VALUES], flush=True)
     catcher.hide_render = f > INTRO
     r.use_motion_blur = f <= INTRO
     scene.view_settings.exposure = s['exposure']

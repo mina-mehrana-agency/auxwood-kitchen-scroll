@@ -31,7 +31,11 @@ jobs:
         if: steps.blender.outputs.cache-hit != 'true'
         run: |
           mkdir blender
-          curl -fsSL https://download.blender.org/release/Blender4.2/blender-4.2.3-linux-x64.tar.xz | tar -xJ -C blender --strip-components=1
+          f=blender-4.2.3-linux-x64.tar.xz
+          for u in https://download.blender.org/release/Blender4.2/$f https://mirrors.ocf.berkeley.edu/blender/release/Blender4.2/$f https://ftp.nluug.nl/pub/graphics/blender/release/Blender4.2/$f; do
+            curl -fsSL -A "Mozilla/5.0" --retry 3 -o b.tar.xz "$u" && break
+          done
+          tar -xJf b.tar.xz -C blender --strip-components=1
       - name: System libraries
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libxi6 libxkbcommon0 libxrender1 libgl1 libsm6 libxxf86vm1 libxfixes3
       - name: Render

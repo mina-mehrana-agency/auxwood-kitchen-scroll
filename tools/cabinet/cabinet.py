@@ -35,7 +35,7 @@ W, H, D = 0.60, 0.62, 0.32          # cabinet (m): an upper two-door unit
 T, DT, GAP, BACK = 0.018, 0.019, 0.003, 0.008
 DW = (W - GAP - 0.002) / 2          # door width
 YF = -D / 2 - 0.0015                # back plane of the doors (they sit in front of the carcass)
-REST_L, REST_R = -58.0, 8.0         # door angles at rest in the hero (deg)
+REST_L, REST_R = -78.0, 6.0         # door angles at rest in the hero (deg)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -105,13 +105,14 @@ def mdf_lacquer(name, door=None):
     mixf = node(nt, 'ShaderNodeMath')
     mixf.operation = 'MULTIPLY_ADD'
     nt.links.new(speck.outputs['Fac'], mixf.inputs[0])
-    mixf.inputs[1].default_value = 0.45
-    nt.links.new(mott.outputs['Fac'], mixf.inputs[2])
+    mixf.inputs[1].default_value = 0.5
+    half = math_node(nt, 'MULTIPLY', mott.outputs['Fac'], 0.5)
+    nt.links.new(half, mixf.inputs[2])
     ramp = nt.nodes.new('ShaderNodeValToRGB')
-    ramp.color_ramp.elements[0].position = 0.55
-    ramp.color_ramp.elements[0].color = (0.40, 0.25, 0.13, 1)
-    ramp.color_ramp.elements[1].position = 0.95
-    ramp.color_ramp.elements[1].color = (0.60, 0.42, 0.24, 1)
+    ramp.color_ramp.elements[0].position = 0.38
+    ramp.color_ramp.elements[0].color = (0.44, 0.27, 0.12, 1)
+    ramp.color_ramp.elements[1].position = 0.66
+    ramp.color_ramp.elements[1].color = (0.56, 0.36, 0.17, 1)
     nt.links.new(mixf.outputs[0], ramp.inputs['Fac'])
     bump = node(nt, 'ShaderNodeBump', Strength=0.08, Distance=0.0004)
     nt.links.new(speck.outputs['Fac'], bump.inputs['Height'])
@@ -152,10 +153,10 @@ def mdf_lacquer(name, door=None):
         nt.links.new(dist, glow.inputs['Value'])
         glow.inputs['From Min'].default_value = 0.0
         glow.inputs['From Max'].default_value = 0.0035
-        glow.inputs['To Min'].default_value = 45.0
+        glow.inputs['To Min'].default_value = 14.0
         glow.inputs['To Max'].default_value = 0.0
         em = nt.nodes.new('ShaderNodeEmission')
-        em.inputs['Color'].default_value = (1.0, 0.55, 0.2, 1)
+        em.inputs['Color'].default_value = (1.0, 0.4, 0.07, 1)
         nt.links.new(glow.outputs['Result'], em.inputs['Strength'])
         add = nt.nodes.new('ShaderNodeAddShader')
         nt.links.new(shader, add.inputs[0])
@@ -345,8 +346,7 @@ def state(f):
         rz = lerp(16, 0, smooth((u - 0.8) / 0.2))
     s['rz'] = math.radians(rz)
     s['lift'] = 0.10 * smooth(u / 0.35)
-    s['floor'] = -1.8 * smooth((u - 0.04) / 0.36)
-    s['exposure'] = 0.0
+    s['exposure'] = -0.75 + 0.25 * smooth((u - 0.8) / 0.2)
     return s
 
 
@@ -356,8 +356,6 @@ for f in range(1, END + 1):
     ROOT.rotation_euler = (0, 0, s['rz'])
     ROOT.keyframe_insert('location', frame=f)
     ROOT.keyframe_insert('rotation_euler', frame=f)
-    catcher.location = (0, 0, s['floor'])
-    catcher.keyframe_insert('location', frame=f)
     for o, (loc, rot) in REST.items():
         swing = s['doorL'] if o is hinges[0] else (s['doorR'] if o is hinges[1] else 0.0)
         if o in s:
@@ -398,8 +396,9 @@ else:
     bg.inputs['Strength'].default_value = 0.3
 
 
-def area(name, size, size_y, loc, energy, color, target=(0, 0, 0.33)):
+def area(name, size, size_y, loc, energy, color, target=(0, 0, 0.33), shadow=True):
     o = bpy.data.objects.new(name, bpy.data.lights.new(name, 'AREA'))
+    o.data.cycles.cast_shadow = shadow
     o.data.shape = 'RECTANGLE'
     o.data.size, o.data.size_y = size, size_y
     o.data.energy = energy
@@ -411,8 +410,8 @@ def area(name, size, size_y, loc, energy, color, target=(0, 0, 0.33)):
 
 
 area('key', 1.6, 1.0, (-1.7, -2.1, 2.1), 520, (1.0, 0.9, 0.78))      # window light, top left
-area('fill', 2.2, 2.2, (2.4, -2.5, 0.8), 140, (0.9, 0.95, 1.0))      # soft fill, right
-area('rim', 0.8, 1.8, (1.6, 1.9, 1.7), 320, (1.0, 0.97, 0.92))       # edge light from behind
+area('fill', 2.2, 2.2, (2.4, -2.5, 1.2), 110, (0.9, 0.95, 1.0), shadow=False)      # soft fill, right
+area('rim', 0.8, 1.8, (1.6, 1.9, 1.7), 260, (1.0, 0.97, 0.92), shadow=False)       # edge light from behind
 area('top', 2.0, 2.0, (0.0, -0.4, 2.6), 160, (1.0, 0.98, 0.95), (0, -0.4, 0))
 
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
@@ -455,7 +454,9 @@ def frames_from(spec):
     out = []
     for part in spec.split(','):
         part = part.strip()
-        if '-' in part:
+        if part == 'shadow':
+            out.append('shadow')
+        elif '-' in part:
             a, b = part.split('-')
             step = 1
             if ':' in b:
@@ -499,9 +500,25 @@ if ci == 0:
     print('meta written', flush=True)
 
 mine = frames_from(ARGS.frames)[ci::cn]
+CAB_MESHES = [o for o in bpy.data.objects if o.type == 'MESH' and o is not catcher]
 for f in mine:
+    if f == 'shadow':
+        # the floor shadow of the first scroll pose alone (the cabinet unseen but still casting it)
+        scene.frame_set(INTRO + 1)
+        for o in CAB_MESHES:
+            o.visible_camera = False
+        catcher.hide_render = False
+        r.use_motion_blur = False
+        scene.view_settings.exposure = state(INTRO + 1)['exposure']
+        r.filepath = os.path.join(ARGS.out, 'shadow.png')
+        bpy.ops.render.render(write_still=True)
+        for o in CAB_MESHES:
+            o.visible_camera = True
+        print('rendered shadow', flush=True)
+        continue
     scene.frame_set(f)
     s = state(f)
+    catcher.hide_render = f > INTRO
     r.use_motion_blur = f <= INTRO
     scene.view_settings.exposure = s['exposure']
     r.filepath = os.path.join(ARGS.out, 'f%03d.png' % f)

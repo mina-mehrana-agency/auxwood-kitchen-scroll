@@ -283,7 +283,7 @@ for s in (-1, 1):   # -1 left door, +1 right door
     hg.location = (s * (W / 2 - 0.001), YF, 0)
     cx = -s * DW / 2
     slab = put('slab', box_mesh('slab', DW, DT, H), M_SLAB, (cx, -DT / 2, H / 2), hg)
-    routed = put('routed', routed_mesh('routed', DW, DT, H), M_ROUTED, (cx, -DT / 2, H / 2), hg)
+    routed = put('routed', routed_mesh('routed', DW - 0.0008, DT - 0.0008, H - 0.0008), M_ROUTED, (cx, -DT / 2 + 0.0004, H / 2), hg)
     for hz in (-H / 2 + 0.09, H / 2 - 0.09):   # hinge cups on the back of the door
         put('cup', cyl_mesh('cup', 0.0175, 0.0016), M_METAL, (s * (DW / 2 - 0.0225), DT / 2 + 0.0006, hz), slab)
     hinges.append(hg)
@@ -346,7 +346,7 @@ def state(f):
     else:
         rz = lerp(16, 0, smooth((u - 0.8) / 0.2))
     s['rz'] = math.radians(rz)
-    s['lift'] = 0.10 * smooth(u / 0.35)
+    s['lift'] = 0.05 * smooth(u / 0.35)
     s['exposure'] = -0.75 + 0.25 * smooth((u - 0.8) / 0.2)
     return s
 
@@ -397,7 +397,7 @@ if pick:
     print('hdri', pick[0], flush=True)
 dim = wn.nodes.new('ShaderNodeBackground')
 dim.inputs['Color'].default_value = (0.62, 0.6, 0.57, 1)
-dim.inputs['Strength'].default_value = 0.14
+dim.inputs['Strength'].default_value = 0.05
 lp = wn.nodes.new('ShaderNodeLightPath')
 mixw = wn.nodes.new('ShaderNodeMixShader')
 wn.links.new(lp.outputs['Is Glossy Ray'], mixw.inputs[0])
@@ -419,10 +419,11 @@ def area(name, size, size_y, loc, energy, color, target=(0, 0, 0.33), shadow=Tru
     return o
 
 
-area('key', 1.6, 1.0, (-1.7, -2.1, 2.1), 520, (1.0, 0.9, 0.78))      # window light, top left
+area('key', 1.6, 1.0, (-1.7, -2.1, 2.8), 560, (1.0, 0.9, 0.78))      # window light, top left (high: short shadow)
 area('fill', 2.2, 2.2, (2.4, -2.5, 1.2), 110, (0.9, 0.95, 1.0), shadow=False)      # soft fill, right
 area('rim', 0.8, 1.8, (1.6, 1.9, 1.7), 260, (1.0, 0.97, 0.92), shadow=False)       # edge light from behind
 area('top', 2.0, 2.0, (0.0, -0.4, 2.6), 160, (1.0, 0.98, 0.95), (0, -0.4, 0))
+area('ambient', 4.0, 3.0, (0.0, -3.6, 1.4), 120, (1.0, 0.98, 0.95), shadow=False)   # front fill, no floor shadow
 
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
 cam.data.lens = 85
